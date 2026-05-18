@@ -11,17 +11,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Set browser path BEFORE installing so runtime finds it in same location
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright
+ENV NODE_ENV=production
+
 COPY package*.json ./
 RUN npm ci
 
-# Install Playwright's Chromium browser
+# Install Chromium into /app/.cache/ms-playwright
 RUN npx playwright install chromium
 
 COPY . .
 RUN npm run build
-
-ENV NODE_ENV=production
-ENV PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright
 
 EXPOSE 3000
 CMD ["npm", "start"]
