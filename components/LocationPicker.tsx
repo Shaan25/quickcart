@@ -8,6 +8,7 @@ interface StoredLocation {
   label: string;
   city: string;
   pincode: string;
+  serviceable: boolean;
 }
 
 interface GeoResult {
@@ -88,7 +89,7 @@ export function LocationPicker() {
     setErrorMsg("");
     try {
       const res = await fetch(`/api/geocode?pincode=${pincode}`);
-      const data = await res.json() as { lat?: number; lng?: number; label?: string; city?: string; error?: string };
+      const data = await res.json() as { lat?: number; lng?: number; label?: string; city?: string; serviceable?: boolean; error?: string };
       if (!res.ok || !data.lat) {
         setErrorMsg(data.error ?? "Could not find this pincode");
         setFetchStatus("error");
@@ -100,7 +101,7 @@ export function LocationPicker() {
         label: data.label ?? pincode,
         city: data.city ?? data.label ?? pincode,
       };
-      saveLocation({ ...geo, pincode });
+      saveLocation({ ...geo, pincode, serviceable: data.serviceable ?? true });
       setOpen(false);
     } catch {
       setErrorMsg("Network error. Try again.");
@@ -112,9 +113,13 @@ export function LocationPicker() {
     <div className="relative" ref={popoverRef}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors border border-gray-200 text-gray-600 hover:bg-gray-100"
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+          location && !location.serviceable
+            ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+            : "border-gray-200 text-gray-600 hover:bg-gray-100"
+        }`}
       >
-        <span className="text-sm">📍</span>
+        <span className="text-sm">{location && !location.serviceable ? "⚠️" : "📍"}</span>
         <span className="max-w-[120px] truncate">
           {location ? location.label : "Set location"}
         </span>
@@ -135,9 +140,13 @@ export function LocationPicker() {
           </div>
 
           {location && (
-            <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-              <p className="text-xs font-medium text-emerald-700">📍 {location.label}</p>
-              <p className="text-xs text-emerald-600">Pincode: {location.pincode}</p>
+            <div className={`mb-3 rounded-lg border px-3 py-2 ${location.serviceable ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+              <p className={`text-xs font-medium ${location.serviceable ? "text-emerald-700" : "text-amber-700"}`}>
+                {location.serviceable ? "📍" : "⚠️"} {location.label}
+              </p>
+              <p className={`text-xs ${location.serviceable ? "text-emerald-600" : "text-amber-600"}`}>
+                {location.serviceable ? `Pincode: ${location.pincode}` : "Quick commerce may not deliver here"}
+              </p>
             </div>
           )}
 

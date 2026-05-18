@@ -29,6 +29,11 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
 
   useEffect(() => {
     if (!query) return;
+    if (location?.serviceable === false) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     setData(null);
@@ -80,25 +85,26 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
     </div>
   );
 
+  if (location?.serviceable === false) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+        <div className="mb-3 text-4xl">📍</div>
+        <h3 className="font-semibold text-gray-900">Area not serviceable</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          Blinkit, Zepto, and Instamart don&apos;t currently deliver to{" "}
+          <span className="font-medium">{location.label}</span>.
+        </p>
+        <button
+          onClick={clearLocation}
+          className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
+        >
+          Search without location
+        </button>
+      </div>
+    );
+  }
+
   if (!data || data.groups.length === 0) {
-    if (data?.locationBased) {
-      return (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
-          <div className="mb-3 text-4xl">📍</div>
-          <h3 className="font-semibold text-gray-900">Not serviceable in your area</h3>
-          <p className="mt-2 text-sm text-gray-600">
-            Blinkit, Zepto, and Instamart don&apos;t appear to deliver to{" "}
-            <span className="font-medium">{location?.label ?? "your pincode"}</span>.
-          </p>
-          <button
-            onClick={clearLocation}
-            className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
-          >
-            Search without location
-          </button>
-        </div>
-      );
-    }
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
         <div className="mb-3 text-4xl">🔍</div>
