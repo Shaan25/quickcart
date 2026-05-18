@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       groups: sorted,
       totalProducts: allRaw.length,
       searchTime: Date.now() - startTime,
+      locationBased: !!location,
     };
 
     return NextResponse.json(response, {

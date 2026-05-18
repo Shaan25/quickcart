@@ -40,6 +40,7 @@ export interface SearchResponse {
   groups: ProductGroup[];
   totalProducts: number;
   searchTime: number;
+  locationBased: boolean;
 }
 
 export interface LocationCoords {

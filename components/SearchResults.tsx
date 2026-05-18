@@ -25,7 +25,7 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
   const { addSearch } = useRecentSearches();
-  const { location } = useLocation();
+  const { location, clearLocation } = useLocation();
 
   useEffect(() => {
     if (!query) return;
@@ -80,15 +80,35 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
     </div>
   );
 
-  if (!data || data.groups.length === 0) return (
-    <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-      <div className="mb-3 text-4xl">🔍</div>
-      <h3 className="font-semibold text-gray-900">No products found</h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Try a different spelling or browse popular items.
-      </p>
-    </div>
-  );
+  if (!data || data.groups.length === 0) {
+    if (data?.locationBased) {
+      return (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+          <div className="mb-3 text-4xl">📍</div>
+          <h3 className="font-semibold text-gray-900">Not serviceable in your area</h3>
+          <p className="mt-2 text-sm text-gray-600">
+            Blinkit, Zepto, and Instamart don&apos;t appear to deliver to{" "}
+            <span className="font-medium">{location?.label ?? "your pincode"}</span>.
+          </p>
+          <button
+            onClick={clearLocation}
+            className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
+          >
+            Search without location
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+        <div className="mb-3 text-4xl">🔍</div>
+        <h3 className="font-semibold text-gray-900">No products found</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Try a different spelling or browse popular items.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>

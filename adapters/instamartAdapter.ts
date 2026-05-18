@@ -184,10 +184,14 @@ class InstamartAdapter implements PlatformAdapter {
     try {
       const live = await fetchFromInstamartLive(query, location);
       if (live.length > 0) return live;
+      // Don't use mock data for location-based searches — mock data would falsely
+      // show products in areas where quick commerce doesn't operate.
+      if (location) return [];
       console.warn("[InstamartAdapter] Live returned 0 results, falling back to mock data");
       return fetchFromMock(query);
     } catch (err) {
       console.error("[InstamartAdapter] Live scraping failed, falling back to mock:", err);
+      if (location) return [];
       return fetchFromMock(query);
     }
   }
