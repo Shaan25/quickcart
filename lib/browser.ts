@@ -1,15 +1,12 @@
-import { chromium } from "playwright-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { chromium } from "playwright";
 import type { Browser } from "playwright";
-
-// @ts-ignore
-chromium.use(StealthPlugin());
 
 let _browser: Browser | null = null;
 
 export async function getBrowser(): Promise<Browser> {
   if (!_browser || !_browser.isConnected()) {
-    _browser = await (chromium as unknown as { launch: (opts: object) => Promise<Browser> }).launch({
+    console.log("[Browser] Launching Chromium...");
+    _browser = await chromium.launch({
       headless: true,
       args: [
         "--no-sandbox",
@@ -17,8 +14,12 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--single-process",
+        "--no-zygote",
+        "--disable-extensions",
+        "--disable-background-networking",
       ],
     });
+    console.log("[Browser] Chromium launched OK");
   }
   return _browser;
 }

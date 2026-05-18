@@ -42,6 +42,12 @@ export async function GET(request: NextRequest) {
       )
     );
 
+    rawResults.forEach((result, i) => {
+      if (result.status === "rejected") {
+        console.error(`[search] adapter[${i}] failed:`, result.reason);
+      }
+    });
+
     const allRaw = rawResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : []
     );
