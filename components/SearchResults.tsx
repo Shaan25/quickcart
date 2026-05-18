@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProductComparisonCard } from "./ProductComparisonCard";
-import { SkeletonResults } from "./SkeletonCard";
+import { SearchLoader } from "./SearchLoader";
 import { SortFilter } from "./SortFilter";
 import { useRecentSearches } from "./RecentSearches";
 import { useLocation } from "./LocationPicker";
@@ -74,12 +74,7 @@ export function SearchResults({ query, sort: initialSort }: SearchResultsProps) 
       : g.variants.some((v) => selectedPlatforms.includes(v.platform))
   );
 
-  if (loading) return (
-    <div>
-      <div className="mb-6 h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
-      <SkeletonResults />
-    </div>
-  );
+  if (loading) return <SearchLoader query={query} />;
 
   if (error) return (
     <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
