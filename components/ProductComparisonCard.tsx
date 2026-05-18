@@ -61,17 +61,27 @@ function PlatformCell({
           Best Value
         </span>
       )}
-      {product.imageUrl && (
-        <div className="mb-2 flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      <div className="mb-2 flex justify-center">
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.imageUrl}
             alt={product.name}
             className="h-14 w-14 object-contain"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            onError={(e) => {
+              const el = e.currentTarget;
+              el.style.display = "none";
+              (el.nextElementSibling as HTMLElement | null)?.style.setProperty("display", "flex");
+            }}
           />
+        ) : null}
+        <div
+          className="h-14 w-14 items-center justify-center rounded-xl bg-gray-100 text-xl font-bold text-gray-400"
+          style={{ display: product.imageUrl ? "none" : "flex" }}
+        >
+          {(product.brand?.[0] ?? product.name[0]).toUpperCase()}
         </div>
-      )}
+      </div>
       <p className="text-lg font-bold text-gray-900">₹{product.price}</p>
       {product.mrp && product.mrp > product.price && (
         <div className="flex items-center gap-1">
