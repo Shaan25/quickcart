@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocation } from "./LocationPicker";
 
 const POPULAR_SEARCHES = ["Red Bull", "Amul Milk", "Eggs", "Maggi", "Lay's", "Coca-Cola", "Bread", "Cadbury Silk"];
 
@@ -14,22 +15,44 @@ export function SearchBar({ autoFocus = false, size = "lg" }: SearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(searchParams.get("q") ?? "");
+  const [pendingQuery, setPendingQuery] = useState<string | null>(null);
+  const [showLocationHint, setShowLocationHint] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { location } = useLocation();
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  // Auto-proceed once location is set after being prompted
+  useEffect(() => {
+    if (pendingQuery && location) {
+      router.push(`/?q=${encodeURIComponent(pendingQuery)}`);
+      setPendingQuery(null);
+      setShowLocationHint(false);
+    }
+  }, [location, pendingQuery, router]);
+
+  const navigate = (trimmed: string) => {
+    if (!location) {
+      setPendingQuery(trimmed);
+      setShowLocationHint(true);
+      window.dispatchEvent(new Event("quickcart_open_location_picker"));
+      return;
+    }
+    router.push(`/?q=${encodeURIComponent(trimmed)}`);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
     if (trimmed.length < 2) return;
-    router.push(`/?q=${encodeURIComponent(trimmed)}`);
+    navigate(trimmed);
   };
 
   const handlePopular = (term: string) => {
     setValue(term);
-    router.push(`/?q=${encodeURIComponent(term)}`);
+    navigate(term);
   };
 
   return (
@@ -61,6 +84,20 @@ export function SearchBar({ autoFocus = false, size = "lg" }: SearchBarProps) {
           </button>
         </div>
       </form>
+
+      {showLocationHint && !location && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <span>📍</span>
+          <span>Set your delivery location above to see live prices near you.</span>
+          <button
+            type="button"
+            onClick={() => setShowLocationHint(false)}
+            className="ml-auto text-amber-400 hover:text-amber-600"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {size === "lg" && (
         <div className="mt-3 flex flex-wrap gap-2">

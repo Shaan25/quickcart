@@ -69,6 +69,12 @@ export function LocationPicker() {
   }, [open]);
 
   useEffect(() => {
+    function handleOpenRequest() { setOpen(true); }
+    window.addEventListener("quickcart_open_location_picker", handleOpenRequest);
+    return () => window.removeEventListener("quickcart_open_location_picker", handleOpenRequest);
+  }, []);
+
+  useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setOpen(false);
