@@ -5,7 +5,7 @@ import { PlatformBadge } from "./PlatformBadge";
 import { discountPct, getPlatformSearchUrl } from "../lib/comparisonEngine";
 import { useBasket } from "./BasketContext";
 
-const PLATFORM_ORDER: Platform[] = ["blinkit", "instamart", "zepto"];
+const PLATFORM_ORDER: Platform[] = ["blinkit", "jiomart", "zepto"];
 
 function PlatformCell({
   product,
@@ -44,7 +44,7 @@ function PlatformCell({
   }
 
   const discount = discountPct(product);
-  const isEstimated = platform === "instamart" && product.id.startsWith("im_");
+  const isEstimated = platform === "jiomart" && product.id.startsWith("jm_mock_");
 
   return (
     <div className={`relative rounded-lg border p-3 transition-all ${isCheapest ? "border-emerald-200 bg-emerald-50 ring-1 ring-emerald-200" : "border-gray-200 bg-white hover:border-gray-300"}`}>

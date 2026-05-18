@@ -3,12 +3,12 @@
 import { useBasket } from "./BasketContext";
 import type { Platform } from "../lib/types";
 
-const PLATFORMS: Platform[] = ["blinkit", "instamart", "zepto"];
+const PLATFORMS: Platform[] = ["blinkit", "jiomart", "zepto"];
 
 const PLATFORM_META: Record<Platform, { label: string; color: string; bg: string }> = {
-  blinkit: { label: "Blinkit", color: "text-green-700", bg: "bg-green-50" },
-  instamart: { label: "Instamart", color: "text-orange-600", bg: "bg-orange-50" },
-  zepto: { label: "Zepto", color: "text-purple-700", bg: "bg-purple-50" },
+  blinkit: { label: "Blinkit", color: "text-green-700",  bg: "bg-green-50"  },
+  jiomart: { label: "JioMart", color: "text-blue-700",   bg: "bg-blue-50"   },
+  zepto:   { label: "Zepto",   color: "text-purple-700", bg: "bg-purple-50" },
 };
 
 interface BasketDrawerProps {

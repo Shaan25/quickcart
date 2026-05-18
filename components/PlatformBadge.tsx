@@ -1,9 +1,9 @@
 import type { Platform } from "../lib/types";
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string; textColor: string; dot: string; live: boolean }> = {
-  blinkit:  { label: "Blinkit",   color: "bg-green-100",  textColor: "text-green-800",  dot: "bg-green-500",  live: true  },
-  instamart:{ label: "Instamart", color: "bg-orange-100", textColor: "text-orange-800", dot: "bg-orange-500", live: false },
-  zepto:    { label: "Zepto",     color: "bg-purple-100", textColor: "text-purple-800", dot: "bg-purple-500", live: true  },
+  blinkit: { label: "Blinkit",  color: "bg-green-100",  textColor: "text-green-800",  dot: "bg-green-500",  live: true },
+  jiomart: { label: "JioMart",  color: "bg-blue-100",   textColor: "text-blue-800",   dot: "bg-blue-500",   live: true },
+  zepto:   { label: "Zepto",    color: "bg-purple-100", textColor: "text-purple-800", dot: "bg-purple-500", live: true },
 };
 
 interface PlatformBadgeProps {

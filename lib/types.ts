@@ -1,4 +1,4 @@
-export type Platform = "blinkit" | "instamart" | "zepto";
+export type Platform = "blinkit" | "jiomart" | "zepto";
 export type BaseUnit = "g" | "ml" | "piece";
 export type SortOption = "lowest_price" | "best_value" | "most_discounted" | "platform";
 

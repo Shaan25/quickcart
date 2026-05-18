@@ -10,7 +10,7 @@ import type { Platform, SearchResponse } from "../lib/types";
 
 const PLATFORMS: { value: Platform; label: string; color: string }[] = [
   { value: "blinkit",   label: "Blinkit",   color: "bg-green-500" },
-  { value: "instamart", label: "Instamart", color: "bg-orange-500" },
+  { value: "jiomart",   label: "JioMart",   color: "bg-blue-500"   },
   { value: "zepto",     label: "Zepto",     color: "bg-purple-500" },
 ];
 

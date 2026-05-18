@@ -1,12 +1,12 @@
 import { blinkitAdapter } from "./blinkitAdapter";
-import { instamartAdapter } from "./instamartAdapter";
+import { jiomartAdapter } from "./jiomartAdapter";
 import { zeptoAdapter } from "./zeptoAdapter";
 import type { PlatformAdapter } from "../lib/types";
 
 export const adapters: PlatformAdapter[] = [
   blinkitAdapter,
-  instamartAdapter,
+  jiomartAdapter,
   zeptoAdapter,
 ];
 
-export { blinkitAdapter, instamartAdapter, zeptoAdapter };
+export { blinkitAdapter, jiomartAdapter, zeptoAdapter };

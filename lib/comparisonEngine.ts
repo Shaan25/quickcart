@@ -42,5 +42,5 @@ export function getPlatformSearchUrl(platform: string, brand: string, name: stri
   const q = encodeURIComponent(`${brand} ${name}`.trim());
   if (platform === "blinkit") return `https://blinkit.com/search?q=${q}`;
   if (platform === "zepto") return `https://www.zeptonow.com/search?query=${q}`;
-  return `https://www.swiggy.com/instamart/search?query=${q}`;
+  return `https://www.jiomart.com/search/result/${encodeURIComponent(`${brand} ${name}`.trim())}`;
 }

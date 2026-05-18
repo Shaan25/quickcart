@@ -37,7 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-3">
               <PlatformDot name="Blinkit" color="bg-green-500" />
-              <PlatformDot name="Instamart" color="bg-orange-500" />
+              <PlatformDot name="JioMart" color="bg-blue-500" />
               <PlatformDot name="Zepto" color="bg-purple-500" />
             </div>
             <Suspense>
@@ -55,7 +55,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="mb-10 text-center">
               <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                 Compare grocery prices<br />
-                <span className="text-gray-400">across Blinkit, Instamart & Zepto</span>
+                <span className="text-gray-400">across Blinkit, JioMart & Zepto</span>
               </h1>
               <p className="mt-3 text-gray-500">
                 Find the cheapest option instantly. Price per unit calculated automatically.
