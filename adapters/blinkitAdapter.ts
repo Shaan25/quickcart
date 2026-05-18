@@ -43,44 +43,44 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
   }
 
   const page = await context.newPage();
-  let searchData: Record<string, unknown> | null = null;
-
-  page.on("response", async (res: import("playwright").Response) => {
-    if (!searchData && res.url().includes("blinkit.com/v1/layout/search") && res.url().includes("search_type")) {
-      try { searchData = await res.json(); } catch {}
-    }
-  });
+  const allProducts: RawProduct[] = [];
 
   try {
-    await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(5000);
-    const loc = await page.evaluate(() => document.querySelector('.tw-truncate, [class*="address"]')?.textContent?.trim() ?? null);
-    if (loc) console.log(`[Blinkit] Delivery location: ${loc}`);
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("blinkit.com/v1/layout/search") && res.url().includes("search_type"),
+      { timeout: 15000 }
+    ).catch(() => null);
+
+    await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    const response = await responsePromise;
+
+    if (response) {
+      const searchData = await response.json() as Record<string, unknown>;
+      const snippets: unknown[] = (searchData as { response?: { snippets?: unknown[] } }).response?.snippets ?? [];
+
+      snippets.forEach((s, i) => {
+        const d = (s as { data?: Record<string, unknown> }).data;
+        if (!d?.name || !d?.normal_price) return;
+        const price = parseInt(getText(d.normal_price).replace(/[₹,\s]/g, "")) || 0;
+        if (!price) return;
+        const mrpRaw = getText((d.offer as Record<string, unknown>)?.mrp);
+        const mrp = mrpRaw ? parseInt(mrpRaw.replace(/[₹,\s]/g, "")) || undefined : undefined;
+        const brand = getText(d.brand_name);
+        const rawName = getText(d.name);
+        const name = rawName.startsWith(brand) ? rawName.slice(brand.length).trim() : rawName;
+        const size = getText(d.variant);
+        const imageObj = d.image as Record<string, unknown> | undefined;
+        const imageUrl = (imageObj?.url as string | undefined) || undefined;
+        allProducts.push({ id: `bk_live_${i}`, name, brand, size, unit: size, price, mrp, availability: !(d.is_sold_out as boolean), imageUrl, category: inferCategory(name), platform: "blinkit" });
+      });
+    }
+
+    console.log(`[Blinkit] Products found: ${allProducts.length}`);
   } finally {
     await context.close();
   }
 
-  if (!searchData) return [];
-
-  const snippets: unknown[] = (searchData as { response?: { snippets?: unknown[] } }).response?.snippets ?? [];
-
-  return snippets
-    .map((s, i): RawProduct | null => {
-      const d = (s as { data?: Record<string, unknown> }).data;
-      if (!d?.name || !d?.normal_price) return null;
-      const price = parseInt(getText(d.normal_price).replace(/[₹,\s]/g, "")) || 0;
-      if (!price) return null;
-      const mrpRaw = getText((d.offer as Record<string, unknown>)?.mrp);
-      const mrp = mrpRaw ? parseInt(mrpRaw.replace(/[₹,\s]/g, "")) || undefined : undefined;
-      const brand = getText(d.brand_name);
-      const rawName = getText(d.name);
-      const name = rawName.startsWith(brand) ? rawName.slice(brand.length).trim() : rawName;
-      const size = getText(d.variant);
-      const imageObj = d.image as Record<string, unknown> | undefined;
-      const imageUrl = (imageObj?.url as string | undefined) || undefined;
-      return { id: `bk_live_${i}`, name, brand, size, unit: size, price, mrp, availability: !(d.is_sold_out as boolean), imageUrl, category: inferCategory(name), platform: "blinkit" };
-    })
-    .filter(Boolean) as RawProduct[];
+  return allProducts;
 }
 
 function fetchFromMock(query: string): RawProduct[] {

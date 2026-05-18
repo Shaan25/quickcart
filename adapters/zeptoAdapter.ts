@@ -35,14 +35,21 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
 
   const page = await context.newPage();
   const allProducts: RawProduct[] = [];
-  let searchResolved = false;
 
-  page.on("response", async (res: import("playwright").Response) => {
-    if (searchResolved) return;
-    if (!res.url().includes("bff-gateway.zepto.com/user-search-service/api/v3/search")) return;
-    if (res.url().includes("/filters")) return;
-    try {
-      const json = await res.json() as Record<string, unknown>;
+  try {
+    const responsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes("bff-gateway.zepto.com/user-search-service/api/v3/search") &&
+        !res.url().includes("/filters") &&
+        res.status() === 200,
+      { timeout: 15000 }
+    ).catch(() => null);
+
+    await page.goto(`https://www.zeptonow.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    const response = await responsePromise;
+
+    if (response) {
+      const json = await response.json() as Record<string, unknown>;
       const layout = (json.layout as unknown[]) ?? [];
 
       for (const widget of layout) {
@@ -70,20 +77,12 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
           const imagePath = variantImages?.[0]?.path;
           const imageUrl = imagePath ? `https://cdn.zeptonow.com/production/tr:w-200,f-auto,q-80/${imagePath}` : undefined;
 
-          allProducts.push({ id: `zt_live_${allProducts.length + i}`, name, brand, size, unit: size, price, mrp, availability: !(productResponse.outOfStock as boolean), imageUrl, category: inferCategory(rawName), platform: "zepto" });
+          allProducts.push({ id: `zt_live_${i}`, name, brand, size, unit: size, price, mrp, availability: !(productResponse.outOfStock as boolean), imageUrl, category: inferCategory(rawName), platform: "zepto" });
         });
       }
-      if (allProducts.length > 0) searchResolved = true;
-    } catch {}
-  });
+    }
 
-  try {
-    await page.goto("https://www.zeptonow.com", { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(2000);
-    await page.goto(`https://www.zeptonow.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(6000);
-    const loc = await page.evaluate(() => document.querySelector('[class*="address"], [class*="location"]')?.textContent?.trim() ?? null);
-    if (loc) console.log(`[Zepto] Delivery location: ${loc}`);
+    console.log(`[Zepto] Products found: ${allProducts.length}`);
   } finally {
     await context.close();
   }

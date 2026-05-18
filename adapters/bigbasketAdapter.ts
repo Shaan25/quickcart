@@ -16,67 +16,60 @@ async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
 
   const page = await context.newPage();
   const allProducts: RawProduct[] = [];
-  let resolved = false;
-
-  page.on("response", async (res: import("playwright").Response) => {
-    if (resolved) return;
-    if (!res.url().includes("listing-svc/v2/products")) return;
-    if (res.status() !== 200) return;
-    const ct = res.headers()["content-type"] ?? "";
-    if (!ct.includes("application/json")) return;
-
-    try {
-      const json = await res.json() as Record<string, unknown>;
-      const tabs = (json.tabs as Array<{ product_info?: { products?: unknown[] } }>) ?? [];
-      const items = tabs[0]?.product_info?.products ?? [];
-      if (!Array.isArray(items) || !items.length) return;
-
-      items.forEach((it, i) => {
-        const item = it as Record<string, unknown>;
-        const rawName = String(item.desc ?? "");
-        if (!rawName) return;
-
-        const pricing = item.pricing as Record<string, unknown> | undefined;
-        const discount = pricing?.discount as Record<string, unknown> | undefined;
-        const primPrice = discount?.prim_price as Record<string, unknown> | undefined;
-        const price = Number(primPrice?.sp ?? 0);
-        if (!price) return;
-
-        const mrpRaw = Number(discount?.mrp ?? 0);
-        const mrp = mrpRaw > price ? mrpRaw : undefined;
-
-        const brandObj = item.brand as Record<string, unknown> | undefined;
-        const brand = String(brandObj?.name ?? "");
-        const name = brand && rawName.toLowerCase().startsWith(brand.toLowerCase())
-          ? rawName.slice(brand.length).trim()
-          : rawName;
-
-        const size = String(item.w ?? "");
-        const images = item.images as Array<{ m?: string; s?: string }> | undefined;
-        const imageUrl = images?.[0]?.m || images?.[0]?.s || undefined;
-        const avail = item.availability as Record<string, unknown> | undefined;
-        const availability = avail?.avail_status === "001" || avail?.button === "Add";
-
-        allProducts.push({
-          id: `bb_live_${allProducts.length + i}`,
-          name, brand, size, unit: size, price, mrp, availability,
-          imageUrl: imageUrl?.startsWith("http") ? imageUrl : undefined,
-          category: inferCategory(rawName),
-          platform: "bigbasket",
-        });
-      });
-
-      if (allProducts.length > 0) {
-        resolved = true;
-        console.log(`[BigBasket] Got ${allProducts.length} live products for "${query}"`);
-      }
-    } catch {}
-  });
 
   try {
-    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(7000);
-    console.log(`[BigBasket] Finished scraping. Products found: ${allProducts.length}`);
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("listing-svc/v2/products") && res.status() === 200,
+      { timeout: 15000 }
+    ).catch(() => null);
+
+    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    const response = await responsePromise;
+
+    if (response) {
+      const json = await response.json() as Record<string, unknown>;
+      const tabs = (json.tabs as Array<{ product_info?: { products?: unknown[] } }>) ?? [];
+      const items = tabs[0]?.product_info?.products ?? [];
+
+      if (Array.isArray(items)) {
+        items.forEach((it, i) => {
+          const item = it as Record<string, unknown>;
+          const rawName = String(item.desc ?? "");
+          if (!rawName) return;
+
+          const pricing = item.pricing as Record<string, unknown> | undefined;
+          const discount = pricing?.discount as Record<string, unknown> | undefined;
+          const primPrice = discount?.prim_price as Record<string, unknown> | undefined;
+          const price = Number(primPrice?.sp ?? 0);
+          if (!price) return;
+
+          const mrpRaw = Number(discount?.mrp ?? 0);
+          const mrp = mrpRaw > price ? mrpRaw : undefined;
+
+          const brandObj = item.brand as Record<string, unknown> | undefined;
+          const brand = String(brandObj?.name ?? "");
+          const name = brand && rawName.toLowerCase().startsWith(brand.toLowerCase())
+            ? rawName.slice(brand.length).trim()
+            : rawName;
+
+          const size = String(item.w ?? "");
+          const images = item.images as Array<{ m?: string; s?: string }> | undefined;
+          const imageUrl = images?.[0]?.m || images?.[0]?.s || undefined;
+          const avail = item.availability as Record<string, unknown> | undefined;
+          const availability = avail?.avail_status === "001" || avail?.button === "Add";
+
+          allProducts.push({
+            id: `bb_live_${i}`,
+            name, brand, size, unit: size, price, mrp, availability,
+            imageUrl: imageUrl?.startsWith("http") ? imageUrl : undefined,
+            category: inferCategory(rawName),
+            platform: "bigbasket",
+          });
+        });
+      }
+    }
+
+    console.log(`[BigBasket] Products found: ${allProducts.length}`);
   } finally {
     await context.close();
   }
