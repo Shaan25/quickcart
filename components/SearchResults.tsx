@@ -6,11 +6,12 @@ import { SkeletonResults } from "./SkeletonCard";
 import { SortFilter } from "./SortFilter";
 import { useRecentSearches } from "./RecentSearches";
 import { useLocation } from "./LocationPicker";
-import type { Platform, SearchResponse } from "../lib/types";
+import { sortGroups } from "../lib/comparisonEngine";
+import type { Platform, SearchResponse, SortOption } from "../lib/types";
 
 const PLATFORMS: { value: Platform; label: string; color: string }[] = [
   { value: "blinkit",   label: "Blinkit",   color: "bg-green-500" },
-  { value: "jiomart",   label: "JioMart",   color: "bg-blue-500"   },
+  { value: "bigbasket", label: "BigBasket", color: "bg-red-500"    },
   { value: "zepto",     label: "Zepto",     color: "bg-purple-500" },
 ];
 
@@ -19,11 +20,12 @@ interface SearchResultsProps {
   sort: string;
 }
 
-export function SearchResults({ query, sort }: SearchResultsProps) {
+export function SearchResults({ query, sort: initialSort }: SearchResultsProps) {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
+  const [sort, setSort] = useState<SortOption>((initialSort as SortOption) ?? "lowest_price");
   const { addSearch } = useRecentSearches();
   const { location, clearLocation } = useLocation();
 
@@ -38,7 +40,7 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
     setError(null);
     setData(null);
 
-    const params: Record<string, string> = { q: query, sort };
+    const params: Record<string, string> = { q: query };
     if (location) {
       params.lat = String(location.lat);
       params.lng = String(location.lng);
@@ -57,7 +59,7 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
       })
       .catch((err) => setError(typeof err === "string" ? err : "Something went wrong."))
       .finally(() => setLoading(false));
-  }, [query, sort, location?.lat, location?.lng]);
+  }, [query, location?.lat, location?.lng]);
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) =>
@@ -65,11 +67,12 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
     );
   };
 
-  const visibleGroups = data?.groups.filter((g) =>
+  const sortedGroups = data ? sortGroups(data.groups, sort) : [];
+  const visibleGroups = sortedGroups.filter((g) =>
     selectedPlatforms.length === 0
       ? true
       : g.variants.some((v) => selectedPlatforms.includes(v.platform))
-  ) ?? [];
+  );
 
   if (loading) return (
     <div>
@@ -91,7 +94,7 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
         <div className="mb-3 text-4xl">📍</div>
         <h3 className="font-semibold text-gray-900">Area not serviceable</h3>
         <p className="mt-2 text-sm text-gray-600">
-          Blinkit, Zepto, and Instamart don&apos;t currently deliver to{" "}
+          Blinkit, BigBasket, and Zepto don&apos;t currently deliver to{" "}
           <span className="font-medium">{location.label}</span>.
         </p>
         <button
@@ -118,7 +121,6 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
 
   return (
     <div>
-      {/* Location banner */}
       {location && (
         <div className="mb-4 flex items-center gap-1.5 text-xs text-gray-500">
           <span>📍</span>
@@ -126,7 +128,6 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
         </div>
       )}
 
-      {/* Header row */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="font-semibold text-gray-900">
@@ -136,7 +137,7 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
             {visibleGroups.length} of {data.groups.length} product{data.groups.length !== 1 ? "s" : ""} · {data.searchTime}ms
           </p>
         </div>
-        <SortFilter />
+        <SortFilter value={sort} onChange={setSort} />
       </div>
 
       {/* Platform filter chips */}
@@ -179,7 +180,11 @@ export function SearchResults({ query, sort }: SearchResultsProps) {
       ) : (
         <div className="space-y-4">
           {visibleGroups.map((group) => (
-            <ProductComparisonCard key={group.groupId} group={group} />
+            <ProductComparisonCard
+              key={group.groupId}
+              group={group}
+              visiblePlatforms={selectedPlatforms.length > 0 ? selectedPlatforms : undefined}
+            />
           ))}
         </div>
       )}

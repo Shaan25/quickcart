@@ -2,15 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { adapters } from "../../../adapters";
 import { normalizeProduct } from "../../../lib/normalizer";
 import { searchProducts, groupProducts } from "../../../lib/matchingEngine";
-import { sortGroups } from "../../../lib/comparisonEngine";
-import type { SearchResponse, SortOption, LocationCoords } from "../../../lib/types";
+import type { SearchResponse, LocationCoords } from "../../../lib/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
-  const sortBy = (searchParams.get("sort") as SortOption) ?? "lowest_price";
   const latParam = searchParams.get("lat");
   const lngParam = searchParams.get("lng");
   const locationLabel = searchParams.get("locationLabel") ?? undefined;
@@ -27,10 +25,21 @@ export async function GET(request: NextRequest) {
 
   const startTime = Date.now();
 
+  function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error("adapter timeout")), ms)
+      ),
+    ]);
+  }
+
   try {
-    // Fetch from all platform adapters in parallel
+    // Fetch from all platform adapters in parallel, each capped at 25s
     const rawResults = await Promise.allSettled(
-      adapters.map((adapter) => adapter.search(query, location))
+      adapters.map((adapter) =>
+        withTimeout(adapter.search(query, location), 25000)
+      )
     );
 
     const allRaw = rawResults.flatMap((result) =>
@@ -46,12 +55,9 @@ export async function GET(request: NextRequest) {
     // Group into comparable product groups
     const groups = groupProducts(matched);
 
-    // Sort by user preference
-    const sorted = sortGroups(groups, sortBy);
-
     const response: SearchResponse = {
       query,
-      groups: sorted,
+      groups,
       totalProducts: allRaw.length,
       searchTime: Date.now() - startTime,
       locationBased: !!location,

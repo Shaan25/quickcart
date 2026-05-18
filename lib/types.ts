@@ -1,6 +1,6 @@
-export type Platform = "blinkit" | "jiomart" | "zepto";
+export type Platform = "blinkit" | "bigbasket" | "zepto";
 export type BaseUnit = "g" | "ml" | "piece";
-export type SortOption = "lowest_price" | "best_value" | "most_discounted" | "platform";
+export type SortOption = "lowest_price" | "best_value" | "most_discounted";
 
 export interface RawProduct {
   id: string;

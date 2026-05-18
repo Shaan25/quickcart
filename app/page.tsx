@@ -37,7 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-3">
               <PlatformDot name="Blinkit" color="bg-green-500" />
-              <PlatformDot name="JioMart" color="bg-blue-500" />
+              <PlatformDot name="BigBasket" color="bg-red-500" />
               <PlatformDot name="Zepto" color="bg-purple-500" />
             </div>
             <Suspense>
@@ -55,7 +55,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="mb-10 text-center">
               <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                 Compare grocery prices<br />
-                <span className="text-gray-400">across Blinkit, JioMart & Zepto</span>
+                <span className="text-gray-400">across Blinkit, BigBasket & Zepto</span>
               </h1>
               <p className="mt-3 text-gray-500">
                 Find the cheapest option instantly. Price per unit calculated automatically.
@@ -107,8 +107,8 @@ export default async function Home({ searchParams }: HomeProps) {
       <footer className="mt-16 border-t border-gray-200 py-6">
         <div className="mx-auto max-w-3xl px-4">
           <p className="text-center text-xs text-gray-400">
-            QuickCart uses mock data for demonstration. Prices are approximate.{" "}
-            <span className="font-medium">Not affiliated with Blinkit, Swiggy Instamart, or Zepto.</span>
+            Prices fetched live from Blinkit, BigBasket &amp; Zepto. Approximate only &mdash; verify before purchasing.{" "}
+            <span className="font-medium">Not affiliated with any platform.</span>
           </p>
         </div>
       </footer>

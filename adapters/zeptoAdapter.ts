@@ -1,13 +1,9 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
-import { chromium } from "playwright-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { getBrowser } from "../lib/browser";
 import * as fs from "fs";
 import * as path from "path";
 
 const SESSION_FILE = path.join(process.cwd(), ".zepto-session-state.json");
-
-// @ts-ignore
-chromium.use(StealthPlugin());
 
 function inferCategory(name: string): string {
   const n = name.toLowerCase();
@@ -22,25 +18,24 @@ function inferCategory(name: string): string {
 }
 
 async function fetchFromZepto(query: string, location?: LocationCoords): Promise<RawProduct[]> {
-  const browser = await (chromium as unknown as { launch: (opts: object) => Promise<import("playwright").Browser> }).launch({ headless: true });
+  const browser = await getBrowser();
   const hasSession = fs.existsSync(SESSION_FILE);
   const context = hasSession
-    ? await (browser as import("playwright").Browser).newContext({ storageState: SESSION_FILE })
-    : await (browser as import("playwright").Browser).newContext();
+    ? await browser.newContext({ storageState: SESSION_FILE, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" })
+    : await browser.newContext({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" });
 
   if (location) {
     await context.addCookies([
-      { name: "latitude", value: String(location.lat), domain: "www.zepto.com", path: "/" },
-      { name: "longitude", value: String(location.lng), domain: "www.zepto.com", path: "/" },
+      { name: "latitude",  value: String(location.lat), domain: ".zeptonow.com", path: "/" },
+      { name: "longitude", value: String(location.lng), domain: ".zeptonow.com", path: "/" },
     ]);
   }
 
   const page = await context.newPage();
-
   const allProducts: RawProduct[] = [];
   let searchResolved = false;
 
-  page.on("response", async (res) => {
+  page.on("response", async (res: import("playwright").Response) => {
     if (searchResolved) return;
     if (!res.url().includes("bff-gateway.zepto.com/user-search-service/api/v3/search")) return;
     if (res.url().includes("/filters")) return;
@@ -50,13 +45,10 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
 
       for (const widget of layout) {
         const w = widget as Record<string, unknown>;
-        const wd = (w.data as Record<string, unknown>) ?? {};
-        const resolver = (wd.resolver as Record<string, unknown>) ?? {};
+        const resolver = ((w.data as Record<string, unknown>)?.resolver as Record<string, unknown>) ?? {};
         if (resolver.type !== "product_grid") continue;
 
-        const resolverData = (resolver.data as Record<string, unknown>) ?? {};
-        const items = (resolverData.items as unknown[]) ?? [];
-
+        const items = ((resolver.data as Record<string, unknown>)?.items as unknown[]) ?? [];
         items.forEach((it, i) => {
           const productResponse = ((it as Record<string, unknown>).productResponse ?? {}) as Record<string, unknown>;
           const product = (productResponse.product ?? {}) as Record<string, unknown>;
@@ -67,59 +59,31 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
           if (!rawName || !productResponse.sellingPrice) return;
 
           const price = Math.round(Number(productResponse.sellingPrice) / 100);
+          if (!price) return;
           const mrpRaw = Number(productResponse.mrp);
           const mrp = mrpRaw ? Math.round(mrpRaw / 100) : undefined;
-          if (!price) return;
-
           const size = String(productVariant.formattedPacksize ?? "");
-          // Strip brand prefix if duplicated
           const name = rawName.startsWith(brand) ? rawName.slice(brand.length).trim() : rawName;
-
           const variantImages = productVariant.images as Array<{ path?: string }> | undefined;
           const imagePath = variantImages?.[0]?.path;
-          const imageUrl = imagePath
-            ? `https://cdn.zeptonow.com/production/ik-seo/tr:w-200,f-auto,q-80/${imagePath.replace(/\.[^.]+$/, "")}/image.jpg`
-            : undefined;
+          const imageUrl = imagePath ? `https://cdn.zeptonow.com/production/tr:w-200,f-auto,q-80/${imagePath}` : undefined;
 
-          allProducts.push({
-            id: `zt_live_${allProducts.length + i}`,
-            name,
-            brand,
-            size,
-            unit: size,
-            price,
-            mrp,
-            availability: !(productResponse.outOfStock as boolean),
-            imageUrl,
-            category: inferCategory(rawName),
-            platform: "zepto",
-          });
+          allProducts.push({ id: `zt_live_${allProducts.length + i}`, name, brand, size, unit: size, price, mrp, availability: !(productResponse.outOfStock as boolean), imageUrl, category: inferCategory(rawName), platform: "zepto" });
         });
       }
-
       if (allProducts.length > 0) searchResolved = true;
     } catch {}
   });
 
   try {
-    // Navigate to homepage first to load session/location context
     await page.goto("https://www.zeptonow.com", { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForTimeout(2000);
-
-    // Navigate directly to search results page
-    await page.goto(
-      `https://www.zeptonow.com/search?query=${encodeURIComponent(query)}`,
-      { waitUntil: "domcontentloaded", timeout: 30000 }
-    );
+    await page.goto(`https://www.zeptonow.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForTimeout(6000);
-
-    const location = await page.evaluate(() => {
-      const el = document.querySelector('[class*="address"], [class*="location"]');
-      return el?.textContent?.trim() ?? null;
-    });
-    if (location) console.log(`[Zepto] Delivery location: ${location}`);
+    const loc = await page.evaluate(() => document.querySelector('[class*="address"], [class*="location"]')?.textContent?.trim() ?? null);
+    if (loc) console.log(`[Zepto] Delivery location: ${loc}`);
   } finally {
-    await browser.close();
+    await context.close();
   }
 
   return allProducts;

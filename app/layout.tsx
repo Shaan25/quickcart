@@ -4,8 +4,8 @@ import { BasketProvider } from "../components/BasketContext";
 
 export const metadata: Metadata = {
   title: "QuickCart — Compare Grocery Prices",
-  description: "Compare prices across Blinkit, Instamart, and Zepto instantly.",
-  keywords: "blinkit, jiomart, zepto, price comparison, grocery",
+  description: "Compare prices across Blinkit, BigBasket, and Zepto instantly.",
+  keywords: "blinkit, bigbasket, zepto, price comparison, grocery",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

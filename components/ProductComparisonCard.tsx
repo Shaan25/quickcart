@@ -5,7 +5,7 @@ import { PlatformBadge } from "./PlatformBadge";
 import { discountPct, getPlatformSearchUrl } from "../lib/comparisonEngine";
 import { useBasket } from "./BasketContext";
 
-const PLATFORM_ORDER: Platform[] = ["blinkit", "jiomart", "zepto"];
+const PLATFORM_ORDER: Platform[] = ["blinkit", "bigbasket", "zepto"];
 
 function PlatformCell({
   product,
@@ -44,7 +44,7 @@ function PlatformCell({
   }
 
   const discount = discountPct(product);
-  const isEstimated = platform === "jiomart" && product.id.startsWith("jm_mock_");
+  const isEstimated = platform === "bigbasket" && !product.id.startsWith("bb_live_");
 
   return (
     <div className={`relative rounded-lg border p-3 transition-all ${isCheapest ? "border-emerald-200 bg-emerald-50 ring-1 ring-emerald-200" : "border-gray-200 bg-white hover:border-gray-300"}`}>
@@ -95,13 +95,17 @@ function PlatformCell({
 
 interface ProductComparisonCardProps {
   group: ProductGroup;
+  visiblePlatforms?: Platform[];
 }
 
-export function ProductComparisonCard({ group }: ProductComparisonCardProps) {
+export function ProductComparisonCard({ group, visiblePlatforms }: ProductComparisonCardProps) {
   const { items, addItem, updateQty } = useBasket();
   const basketEntry = items.find((i) => i.groupId === group.groupId);
 
   const platformMap = new Map(group.variants.map((v) => [v.platform, v]));
+  const activePlatforms = visiblePlatforms ?? PLATFORM_ORDER;
+  const colCount = activePlatforms.length;
+  const gridClass = colCount === 1 ? "grid-cols-1" : colCount === 2 ? "grid-cols-2" : "grid-cols-3";
 
   const savings =
     group.cheapest && group.variants.filter((v) => v.availability).length > 1
@@ -169,8 +173,8 @@ export function ProductComparisonCard({ group }: ProductComparisonCardProps) {
       </div>
 
       <div className="px-5 py-4">
-        <div className="grid grid-cols-3 gap-3">
-          {PLATFORM_ORDER.map((platform) => (
+        <div className={`grid ${gridClass} gap-3`}>
+          {activePlatforms.map((platform) => (
             <div key={platform}>
               <div className="mb-2">
                 <PlatformBadge platform={platform} size="sm" showLiveStatus />
