@@ -1,7 +1,5 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
 import { getBrowser } from "../lib/browser";
-import { bigbasketProducts } from "../data/bigbasket";
-import { scoreMatch } from "../lib/fuzzySearch";
 
 async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   const browser = await getBrowser();
@@ -20,10 +18,10 @@ async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   try {
     const responsePromise = page.waitForResponse(
       (res) => res.url().includes("listing-svc/v2/products") && res.status() === 200,
-      { timeout: 15000 }
+      { timeout: 25000 }
     ).catch(() => null);
 
-    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
     const response = await responsePromise;
 
     if (response) {
@@ -90,40 +88,20 @@ function inferCategory(name: string): string {
   return "grocery";
 }
 
-function fetchFromMock(query: string): RawProduct[] {
-  const normalizedQuery = query.toLowerCase().trim();
-  return bigbasketProducts.filter((product) => {
-    const searchText = `${product.brand} ${product.name} ${product.size} ${product.category}`;
-    return scoreMatch(normalizedQuery, searchText) >= 0.35;
-  });
-}
-
-function withLiveTimeout(query: string, ms: number): Promise<RawProduct[]> {
-  return Promise.race([
-    fetchFromBigbasketLive(query),
-    new Promise<RawProduct[]>((_, reject) =>
-      setTimeout(() => reject(new Error("live timeout")), ms)
-    ),
-  ]);
-}
-
 class BigbasketAdapter implements PlatformAdapter {
   platform = "bigbasket" as const;
 
   async search(query: string, _location?: LocationCoords): Promise<RawProduct[]> {
     try {
-      const live = await withLiveTimeout(query, 20000);
-      if (live.length > 0) return live;
-      console.warn("[BigbasketAdapter] Live returned 0, falling back to mock");
-      return fetchFromMock(query);
+      return await fetchFromBigbasketLive(query);
     } catch (err) {
-      console.warn("[BigbasketAdapter] Live scraping failed or timed out, falling back to mock:", (err as Error).message);
-      return fetchFromMock(query);
+      console.error("[BigbasketAdapter] Live scraping failed:", (err as Error).message);
+      return [];
     }
   }
 
-  async getById(id: string): Promise<RawProduct | null> {
-    return bigbasketProducts.find((p) => p.id === id) ?? null;
+  async getById(_id: string): Promise<RawProduct | null> {
+    return null;
   }
 }
 
