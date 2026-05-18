@@ -105,17 +105,26 @@ function fetchFromMock(query: string): RawProduct[] {
   });
 }
 
+function withLiveTimeout(query: string, ms: number): Promise<RawProduct[]> {
+  return Promise.race([
+    fetchFromBigbasketLive(query),
+    new Promise<RawProduct[]>((_, reject) =>
+      setTimeout(() => reject(new Error("live timeout")), ms)
+    ),
+  ]);
+}
+
 class BigbasketAdapter implements PlatformAdapter {
   platform = "bigbasket" as const;
 
   async search(query: string, _location?: LocationCoords): Promise<RawProduct[]> {
     try {
-      const live = await fetchFromBigbasketLive(query);
+      const live = await withLiveTimeout(query, 20000);
       if (live.length > 0) return live;
       console.warn("[BigbasketAdapter] Live returned 0, falling back to mock");
       return fetchFromMock(query);
     } catch (err) {
-      console.error("[BigbasketAdapter] Live scraping failed, falling back to mock:", err);
+      console.warn("[BigbasketAdapter] Live scraping failed or timed out, falling back to mock:", (err as Error).message);
       return fetchFromMock(query);
     }
   }

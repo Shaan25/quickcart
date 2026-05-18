@@ -1,5 +1,7 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
 import { getBrowser } from "../lib/browser";
+import { blinkitProducts } from "../data/blinkit";
+import { scoreMatch } from "../lib/fuzzySearch";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -81,15 +83,35 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
     .filter(Boolean) as RawProduct[];
 }
 
+function fetchFromMock(query: string): RawProduct[] {
+  const normalizedQuery = query.toLowerCase().trim();
+  return blinkitProducts.filter((product) => {
+    const searchText = `${product.brand} ${product.name} ${product.size} ${product.category}`;
+    return scoreMatch(normalizedQuery, searchText) >= 0.35;
+  });
+}
+
+function withLiveTimeout(query: string, location: LocationCoords | undefined, ms: number): Promise<RawProduct[]> {
+  return Promise.race([
+    fetchFromBlinkit(query, location),
+    new Promise<RawProduct[]>((_, reject) =>
+      setTimeout(() => reject(new Error("live timeout")), ms)
+    ),
+  ]);
+}
+
 class BlinkitAdapter implements PlatformAdapter {
   platform = "blinkit" as const;
 
   async search(query: string, location?: LocationCoords): Promise<RawProduct[]> {
     try {
-      return await fetchFromBlinkit(query, location);
+      const live = await withLiveTimeout(query, location, 20000);
+      if (live.length > 0) return live;
+      console.warn("[BlinkitAdapter] Live returned 0, falling back to mock");
+      return fetchFromMock(query);
     } catch (err) {
-      console.error("[BlinkitAdapter] scrape failed:", err);
-      return [];
+      console.warn("[BlinkitAdapter] Live scraping failed or timed out, falling back to mock:", (err as Error).message);
+      return fetchFromMock(query);
     }
   }
 

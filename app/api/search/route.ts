@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch from all platform adapters in parallel, each capped at 25s
+    // Fetch from all platform adapters in parallel, each capped at 25s (adapters self-limit at 20s with mock fallback)
     const rawResults = await Promise.allSettled(
       adapters.map((adapter) =>
         withTimeout(adapter.search(query, location), 25000)

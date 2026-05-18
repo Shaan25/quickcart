@@ -44,7 +44,10 @@ function PlatformCell({
   }
 
   const discount = discountPct(product);
-  const isEstimated = platform === "bigbasket" && !product.id.startsWith("bb_live_");
+  const isEstimated =
+    (platform === "bigbasket" && !product.id.startsWith("bb_live_")) ||
+    (platform === "blinkit" && !product.id.startsWith("bk_live_")) ||
+    (platform === "zepto" && !product.id.startsWith("zt_live_"));
 
   return (
     <div className={`relative rounded-lg border p-3 transition-all ${isCheapest ? "border-emerald-200 bg-emerald-50 ring-1 ring-emerald-200" : "border-gray-200 bg-white hover:border-gray-300"}`}>

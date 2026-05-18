@@ -1,5 +1,7 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
 import { getBrowser } from "../lib/browser";
+import { zeptoProducts } from "../data/zepto";
+import { scoreMatch } from "../lib/fuzzySearch";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -89,15 +91,35 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
   return allProducts;
 }
 
+function fetchFromMock(query: string): RawProduct[] {
+  const normalizedQuery = query.toLowerCase().trim();
+  return zeptoProducts.filter((product) => {
+    const searchText = `${product.brand} ${product.name} ${product.size} ${product.category}`;
+    return scoreMatch(normalizedQuery, searchText) >= 0.35;
+  });
+}
+
+function withLiveTimeout(query: string, location: LocationCoords | undefined, ms: number): Promise<RawProduct[]> {
+  return Promise.race([
+    fetchFromZepto(query, location),
+    new Promise<RawProduct[]>((_, reject) =>
+      setTimeout(() => reject(new Error("live timeout")), ms)
+    ),
+  ]);
+}
+
 class ZeptoAdapter implements PlatformAdapter {
   platform = "zepto" as const;
 
   async search(query: string, location?: LocationCoords): Promise<RawProduct[]> {
     try {
-      return await fetchFromZepto(query, location);
+      const live = await withLiveTimeout(query, location, 20000);
+      if (live.length > 0) return live;
+      console.warn("[ZeptoAdapter] Live returned 0, falling back to mock");
+      return fetchFromMock(query);
     } catch (err) {
-      console.error("[ZeptoAdapter] scrape failed:", err);
-      return [];
+      console.warn("[ZeptoAdapter] Live scraping failed or timed out, falling back to mock:", (err as Error).message);
+      return fetchFromMock(query);
     }
   }
 
