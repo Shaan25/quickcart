@@ -1,13 +1,10 @@
 services:
   - type: web
     name: quickcart
-    env: node
+    env: docker
     region: singapore
     plan: free
-    buildCommand: npm install && npx playwright install-deps chromium && npx playwright install chromium && npm run build
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PLAYWRIGHT_BROWSERS_PATH
-        value: /opt/render/project/.browsers
