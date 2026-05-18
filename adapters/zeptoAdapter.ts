@@ -75,10 +75,11 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
           // Strip brand prefix if duplicated
           const name = rawName.startsWith(brand) ? rawName.slice(brand.length).trim() : rawName;
 
-          const productImages = product.images as Array<Record<string, unknown>> | undefined;
-          const imageUrl = ((productImages?.[0]?.url as string | undefined)
-            ?? (product.imageUrl as string | undefined)
-            ?? (productVariant.image as string | undefined)) || undefined;
+          const variantImages = productVariant.images as Array<{ path?: string }> | undefined;
+          const imagePath = variantImages?.[0]?.path;
+          const imageUrl = imagePath
+            ? `https://cdn.zeptonow.com/production/ik-seo/tr:w-200,f-auto,q-80/${imagePath.replace(/\.[^.]+$/, "")}/image.jpg`
+            : undefined;
 
           allProducts.push({
             id: `zt_live_${allProducts.length + i}`,
