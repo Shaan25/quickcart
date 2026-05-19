@@ -25,7 +25,7 @@ async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
     });
 
     await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
-    await page.waitForTimeout(12000);
+    for (let i = 0; i < 40 && !capturedBody; i++) await page.waitForTimeout(200);
 
     if (capturedBody) {
       const json = JSON.parse(capturedBody) as Record<string, unknown>;

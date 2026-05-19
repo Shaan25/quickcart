@@ -56,7 +56,7 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
     });
 
     await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
-    await page.waitForTimeout(12000);
+    for (let i = 0; i < 40 && !capturedBody; i++) await page.waitForTimeout(200);
 
     if (capturedBody) {
       const searchData = JSON.parse(capturedBody) as Record<string, unknown>;

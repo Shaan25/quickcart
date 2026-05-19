@@ -49,7 +49,8 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
     });
 
     await page.goto(`https://www.zepto.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
-    await page.waitForTimeout(12000);
+    // Poll up to 8s; exit early once response is captured
+    for (let i = 0; i < 40 && !capturedBody; i++) await page.waitForTimeout(200);
 
     if (capturedBody) {
       const json = JSON.parse(capturedBody) as Record<string, unknown>;
