@@ -43,8 +43,11 @@ export async function GET(request: NextRequest) {
     );
 
     rawResults.forEach((result, i) => {
+      const platform = adapters[i].platform;
       if (result.status === "rejected") {
-        console.error(`[search] adapter[${i}] failed:`, result.reason);
+        console.error(`[search] ${platform} failed:`, result.reason);
+      } else {
+        console.log(`[search] ${platform} returned ${result.value.length} products`);
       }
     });
 
@@ -61,12 +64,19 @@ export async function GET(request: NextRequest) {
     // Group into comparable product groups
     const groups = groupProducts(matched);
 
-    const response: SearchResponse = {
+    const adapterDebug = rawResults.map((r, i) => ({
+      platform: adapters[i].platform,
+      count: r.status === "fulfilled" ? r.value.length : 0,
+      error: r.status === "rejected" ? String(r.reason).slice(0, 200) : null,
+    }));
+
+    const response: SearchResponse & { adapterDebug?: unknown } = {
       query,
       groups,
       totalProducts: allRaw.length,
       searchTime: Date.now() - startTime,
       locationBased: !!location,
+      adapterDebug,
     };
 
     return NextResponse.json(response, {
