@@ -48,16 +48,18 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
   const allProducts: RawProduct[] = [];
 
   try {
-    const responsePromise = page.waitForResponse(
-      (res) => res.url().includes("blinkit.com/v1/layout/search") && res.url().includes("search_type"),
-      { timeout: 18000 }
-    ).catch(() => null);
+    let capturedBody: string | null = null;
+    page.on("response", async (res) => {
+      if (res.url().includes("blinkit.com/v1/layout/search") && res.url().includes("search_type") && !capturedBody) {
+        capturedBody = await res.text().catch(() => null);
+      }
+    });
 
     await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
-    const response = await responsePromise;
+    await page.waitForTimeout(12000);
 
-    if (response) {
-      const searchData = await response.json() as Record<string, unknown>;
+    if (capturedBody) {
+      const searchData = JSON.parse(capturedBody) as Record<string, unknown>;
       const snippets: unknown[] = (searchData as { response?: { snippets?: unknown[] } }).response?.snippets ?? [];
 
       snippets.forEach((s, i) => {

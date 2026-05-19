@@ -36,19 +36,23 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
   const allProducts: RawProduct[] = [];
 
   try {
-    const responsePromise = page.waitForResponse(
-      (res) =>
+    let capturedBody: string | null = null;
+    page.on("response", async (res) => {
+      if (
         res.url().includes("bff-gateway.zepto.com/user-search-service/api/v3/search") &&
         !res.url().includes("/filters") &&
-        res.status() === 200,
-      { timeout: 18000 }
-    ).catch(() => null);
+        res.status() === 200 &&
+        !capturedBody
+      ) {
+        capturedBody = await res.text().catch(() => null);
+      }
+    });
 
     await page.goto(`https://www.zepto.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
-    const response = await responsePromise;
+    await page.waitForTimeout(12000);
 
-    if (response) {
-      const json = await response.json() as Record<string, unknown>;
+    if (capturedBody) {
+      const json = JSON.parse(capturedBody) as Record<string, unknown>;
       const layout = (json.layout as unknown[]) ?? [];
 
       for (const widget of layout) {
