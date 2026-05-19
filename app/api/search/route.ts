@@ -35,18 +35,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch from all platform adapters in parallel, capped at 30s each
-    const rawResults = await Promise.allSettled(
-      adapters.map((adapter) =>
-        withTimeout(adapter.search(query, location), 30000)
-      )
-    );
-
-    rawResults.forEach((result, i) => {
+    // Run adapters sequentially to avoid OOM on 512MB Render — parallel 3x browser contexts crashes
+    const rawResults: PromiseSettledResult<import("../../../lib/types").RawProduct[]>[] = [];
+    for (const adapter of adapters) {
+      const result = await withTimeout(adapter.search(query, location), 30000)
+        .then((value) => ({ status: "fulfilled" as const, value }))
+        .catch((reason) => ({ status: "rejected" as const, reason }));
+      rawResults.push(result);
       if (result.status === "rejected") {
-        console.error(`[search] adapter[${i}] failed:`, result.reason);
+        console.error(`[search] ${adapter.platform} failed:`, result.reason);
       }
-    });
+    }
 
     const allRaw = rawResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : []
