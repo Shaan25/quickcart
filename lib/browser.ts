@@ -1,12 +1,16 @@
-import { chromium } from "playwright";
+import { chromium as chromiumExtra } from "playwright-extra";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 import type { Browser, Page } from "playwright";
+
+chromiumExtra.use(StealthPlugin());
 
 let _browser: Browser | null = null;
 
 export async function getBrowser(): Promise<Browser> {
-  if (!_browser || !_browser.isConnected()) {
-    console.log("[Browser] Launching Chromium...");
-    _browser = await chromium.launch({
+  if (!_browser || !(_browser as Browser).isConnected()) {
+    console.log("[Browser] Launching Chromium with stealth...");
+    _browser = await chromiumExtra.launch({
       headless: true,
       args: [
         "--no-sandbox",
@@ -17,19 +21,17 @@ export async function getBrowser(): Promise<Browser> {
         "--no-zygote",
         "--disable-blink-features=AutomationControlled",
       ],
-    });
+    }) as unknown as Browser;
     console.log("[Browser] Chromium launched OK");
   }
   return _browser;
 }
 
-// Inject stealth overrides so sites don't detect headless Chromium
+// Additional runtime stealth overrides on top of plugin
 export async function stealthPage(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    // Hide webdriver flag
     Object.defineProperty(navigator, "webdriver", { get: () => false });
 
-    // Add realistic chrome object
     (window as unknown as Record<string, unknown>).chrome = {
       runtime: {},
       loadTimes: () => ({}),
@@ -37,14 +39,12 @@ export async function stealthPage(page: Page): Promise<void> {
       app: {},
     };
 
-    // Fix permissions API
     const origQuery = navigator.permissions.query.bind(navigator.permissions);
     navigator.permissions.query = (p: PermissionDescriptor) =>
       p.name === "notifications"
         ? Promise.resolve({ state: Notification.permission, onchange: null } as PermissionStatus)
         : origQuery(p);
 
-    // Realistic plugins + languages
     Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
     Object.defineProperty(navigator, "languages", { get: () => ["en-IN", "en"] });
   });

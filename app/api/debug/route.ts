@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chromium } from "playwright";
+import { getBrowser, stealthPage } from "../../../lib/browser";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +9,8 @@ export async function GET(request: Request) {
 
   if (test === "launch") {
     try {
-      const browser = await chromium.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote", "--disable-blink-features=AutomationControlled"],
-      });
-      await browser.close();
-      return NextResponse.json({ status: "browser_ok" });
+      const browser = await getBrowser();
+      return NextResponse.json({ status: "browser_ok", connected: browser.isConnected() });
     } catch (e) {
       return NextResponse.json({ status: "browser_failed", error: (e as Error).message });
     }
@@ -28,24 +24,14 @@ export async function GET(request: Request) {
 
   if (!urls[test]) return NextResponse.json({ error: "use ?test=launch|blinkit|bigbasket|zepto" });
 
-  let browser;
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote", "--disable-blink-features=AutomationControlled"],
-    });
+    const browser = await getBrowser();
     const ctx = await browser.newContext({
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     });
     const page = await ctx.newPage();
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, "webdriver", { get: () => false });
-      (window as unknown as Record<string, unknown>).chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}) };
-      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3] });
-      Object.defineProperty(navigator, "languages", { get: () => ["en-IN", "en"] });
-    });
+    await stealthPage(page);
 
-    // Capture ALL XHR/fetch calls
     const apiCalls: string[] = [];
     page.on("response", (res) => {
       const url = res.url();
@@ -58,7 +44,7 @@ export async function GET(request: Request) {
     let gotoResult = "";
     let finalUrl = "";
     try {
-      await page.goto(urls[test], { waitUntil: "domcontentloaded", timeout: 15000 });
+      await page.goto(urls[test], { waitUntil: "domcontentloaded", timeout: 20000 });
       gotoResult = "ok";
       finalUrl = page.url();
       await page.waitForTimeout(8000);
@@ -67,10 +53,9 @@ export async function GET(request: Request) {
       finalUrl = page.url();
     }
 
-    await browser.close();
+    await ctx.close();
     return NextResponse.json({ platform: test, gotoResult, finalUrl, apiCalls });
   } catch (e) {
-    if (browser) await browser.close().catch(() => {});
     return NextResponse.json({ platform: test, error: (e as Error).message.slice(0, 200) });
   }
 }
