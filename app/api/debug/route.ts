@@ -44,6 +44,44 @@ export async function GET(request: Request) {
     }
   }
 
+  if (test === "adapter-sim") {
+    const logs: string[] = [];
+    const t = () => Date.now();
+    const t0 = t();
+    try {
+      const browser = await getBrowser();
+      logs.push(`[${t()-t0}ms] browser: ${browser.isConnected()}`);
+      const ctx = await browser.newContext({
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      });
+      logs.push(`[${t()-t0}ms] context created`);
+      const page = await ctx.newPage();
+      logs.push(`[${t()-t0}ms] page created`);
+      await stealthPage(page);
+      logs.push(`[${t()-t0}ms] stealth applied`);
+
+      const responsePromise = page.waitForResponse(
+        (res) => res.url().includes("listing-svc/v2/products") && res.status() === 200,
+        { timeout: 18000 }
+      ).catch((e) => { logs.push(`[${t()-t0}ms] waitForResponse error: ${(e as Error).message}`); return null; });
+      logs.push(`[${t()-t0}ms] waitForResponse listener set`);
+
+      try {
+        await page.goto("https://www.bigbasket.com/ps/?q=milk", { waitUntil: "domcontentloaded", timeout: 18000 });
+        logs.push(`[${t()-t0}ms] goto complete, url: ${page.url()}`);
+      } catch (e) {
+        logs.push(`[${t()-t0}ms] goto FAILED: ${(e as Error).message.slice(0, 200)}`);
+      }
+
+      const response = await responsePromise;
+      logs.push(`[${t()-t0}ms] response: ${response ? `got (${response.url().slice(0, 80)})` : "null"}`);
+      await ctx.close();
+    } catch (e) {
+      logs.push(`[${t()-t0}ms] OUTER ERROR: ${(e as Error).message.slice(0, 200)}`);
+    }
+    return NextResponse.json({ logs });
+  }
+
   if (test === "bb-response") {
     try {
       const browser = await getBrowser();
