@@ -24,12 +24,12 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
     ? await browser.newContext({ storageState: SESSION_FILE, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" })
     : await browser.newContext({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" });
 
-  if (location) {
-    await context.addCookies([
-      { name: "latitude",  value: String(location.lat), domain: ".zeptonow.com", path: "/" },
-      { name: "longitude", value: String(location.lng), domain: ".zeptonow.com", path: "/" },
-    ]);
-  }
+  // Default to Bengaluru if no location provided — Zepto needs coords to serve products
+  const loc = location ?? { lat: 12.9716, lng: 77.5946 };
+  await context.addCookies([
+    { name: "latitude",  value: String(loc.lat), domain: ".zeptonow.com", path: "/" },
+    { name: "longitude", value: String(loc.lng), domain: ".zeptonow.com", path: "/" },
+  ]);
 
   const page = await context.newPage();
   await stealthPage(page);
