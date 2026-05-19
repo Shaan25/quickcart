@@ -1,18 +1,15 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
 import { getBrowser, stealthPage } from "../lib/browser";
-import { proxyOptions } from "../lib/proxy";
 
 async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   const browser = await getBrowser();
   const context = await browser.newContext({
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    ignoreHTTPSErrors: !!process.env.SCRAPER_API_KEY || !!process.env.PROXY_URL,
     extraHTTPHeaders: {
       "Accept": "application/json, text/plain, */*",
       "Accept-Language": "en-IN,en;q=0.9",
       "Referer": "https://www.bigbasket.com/",
     },
-    ...proxyOptions(),
   });
 
   const page = await context.newPage();
