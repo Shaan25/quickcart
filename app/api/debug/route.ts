@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBrowser, stealthPage } from "../../../lib/browser";
+import { bigbasketAdapter } from "../../../adapters/bigbasketAdapter";
+import { zeptoAdapter } from "../../../adapters/zeptoAdapter";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,26 @@ export async function GET(request: Request) {
     bigbasket: "https://www.bigbasket.com/ps/?q=milk",
     zepto:     "https://www.zepto.com/search?query=milk",
   };
+
+  if (test === "bb-adapter") {
+    const start = Date.now();
+    try {
+      const products = await bigbasketAdapter.search("milk");
+      return NextResponse.json({ count: products.length, ms: Date.now() - start, first: products[0] ?? null });
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message, ms: Date.now() - start });
+    }
+  }
+
+  if (test === "zepto-adapter") {
+    const start = Date.now();
+    try {
+      const products = await zeptoAdapter.search("milk");
+      return NextResponse.json({ count: products.length, ms: Date.now() - start, first: products[0] ?? null });
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message, ms: Date.now() - start });
+    }
+  }
 
   if (test === "bb-response") {
     try {
