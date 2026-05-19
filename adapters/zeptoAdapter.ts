@@ -44,7 +44,7 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
       { timeout: 25000 }
     ).catch(() => null);
 
-    await page.goto(`https://www.zeptonow.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
+    await page.goto(`https://www.zepto.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
     const response = await responsePromise;
 
     if (response) {
