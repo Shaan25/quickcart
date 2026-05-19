@@ -3,66 +3,61 @@ import { chromium } from "playwright";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const info: Record<string, unknown> = {};
-  info.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH ?? "not set";
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const test = searchParams.get("test") ?? "launch";
 
-  let browser;
-  try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage",
-        "--disable-gpu", "--single-process", "--no-zygote",
-        "--disable-blink-features=AutomationControlled",
-      ],
-    });
-    info.launch = "OK";
-  } catch (e) {
-    info.launch = `FAILED: ${(e as Error).message}`;
-    return NextResponse.json(info);
-  }
-
-  // Test each platform
-  const platforms = [
-    { name: "blinkit", url: "https://blinkit.com/s/?q=milk", apiPattern: "v1/layout/search" },
-    { name: "bigbasket", url: "https://www.bigbasket.com/ps/?q=milk", apiPattern: "listing-svc/v2/products" },
-    { name: "zepto", url: "https://www.zeptonow.com/search?query=milk", apiPattern: "user-search-service/api/v3/search" },
-  ];
-
-  for (const p of platforms) {
-    const ctx = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    });
-    const page = await ctx.newPage();
-
-    // Inject stealth
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, "webdriver", { get: () => false });
-      (window as unknown as Record<string, unknown>).chrome = { runtime: {} };
-    });
-
-    let apiHit = false;
-    let gotoStatus = "";
-    let finalUrl = "";
-
-    page.on("response", (res) => {
-      if (res.url().includes(p.apiPattern)) apiHit = true;
-    });
-
+  if (test === "launch") {
     try {
-      await page.goto(p.url, { waitUntil: "domcontentloaded", timeout: 15000 });
-      gotoStatus = "OK";
-      finalUrl = page.url();
-      await page.waitForTimeout(3000);
+      const browser = await chromium.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote", "--disable-blink-features=AutomationControlled"],
+      });
+      await browser.close();
+      return NextResponse.json({ status: "browser_ok" });
     } catch (e) {
-      gotoStatus = `ERROR: ${(e as Error).message.slice(0, 100)}`;
+      return NextResponse.json({ status: "browser_failed", error: (e as Error).message });
     }
-
-    info[p.name] = { gotoStatus, finalUrl, apiHit };
-    await ctx.close();
   }
 
-  await browser.close();
-  return NextResponse.json(info);
+  if (test === "blinkit" || test === "bigbasket" || test === "zepto") {
+    const urls: Record<string, { goto: string; api: string }> = {
+      blinkit:   { goto: "https://blinkit.com/s/?q=milk",              api: "v1/layout/search" },
+      bigbasket: { goto: "https://www.bigbasket.com/ps/?q=milk",        api: "listing-svc/v2/products" },
+      zepto:     { goto: "https://www.zeptonow.com/search?query=milk",  api: "user-search-service" },
+    };
+    const cfg = urls[test];
+    let browser;
+    try {
+      browser = await chromium.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote", "--disable-blink-features=AutomationControlled"],
+      });
+      const ctx = await browser.newContext({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" });
+      const page = await ctx.newPage();
+      await page.addInitScript(() => { Object.defineProperty(navigator, "webdriver", { get: () => false }); });
+
+      let apiHit = false;
+      page.on("response", (res) => { if (res.url().includes(cfg.api)) apiHit = true; });
+
+      let gotoResult = "";
+      let finalUrl = "";
+      try {
+        await page.goto(cfg.goto, { waitUntil: "domcontentloaded", timeout: 12000 });
+        gotoResult = "ok";
+        finalUrl = page.url();
+        await page.waitForTimeout(5000);
+      } catch (e) {
+        gotoResult = (e as Error).message.slice(0, 120);
+      }
+
+      await browser.close();
+      return NextResponse.json({ platform: test, gotoResult, finalUrl, apiHit });
+    } catch (e) {
+      if (browser) await browser.close().catch(() => {});
+      return NextResponse.json({ platform: test, error: (e as Error).message.slice(0, 200) });
+    }
+  }
+
+  return NextResponse.json({ error: "unknown test. use ?test=launch|blinkit|bigbasket|zepto" });
 }
