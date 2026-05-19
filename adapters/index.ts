@@ -4,9 +4,9 @@ import { zeptoAdapter } from "./zeptoAdapter";
 import type { PlatformAdapter } from "../lib/types";
 
 export const adapters: PlatformAdapter[] = [
-  blinkitAdapter,
-  bigbasketAdapter,
   zeptoAdapter,
+  bigbasketAdapter,
+  blinkitAdapter,
 ];
 
 export { blinkitAdapter, bigbasketAdapter, zeptoAdapter };
