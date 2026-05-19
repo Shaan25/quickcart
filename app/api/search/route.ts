@@ -35,21 +35,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch from all platform adapters in parallel, capped at 30s each
-    const rawResults = await Promise.allSettled(
-      adapters.map((adapter) =>
-        withTimeout(adapter.search(query, location), 30000)
-      )
-    );
-
-    rawResults.forEach((result, i) => {
-      const platform = adapters[i].platform;
+    // Run adapters sequentially — parallel execution causes OOM on 512MB (3 Chromium pages ~150MB each)
+    const rawResults: PromiseSettledResult<Awaited<ReturnType<typeof adapters[0]["search"]>>>[] = [];
+    for (const adapter of adapters) {
+      const result = await withTimeout(adapter.search(query, location), 25000)
+        .then((v) => ({ status: "fulfilled" as const, value: v }))
+        .catch((r) => ({ status: "rejected" as const, reason: r }));
+      rawResults.push(result);
+      const platform = adapter.platform;
       if (result.status === "rejected") {
         console.error(`[search] ${platform} failed:`, result.reason);
       } else {
         console.log(`[search] ${platform} returned ${result.value.length} products`);
       }
-    });
+    }
 
     const allRaw = rawResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : []
@@ -80,7 +79,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(response, {
-      headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
     console.error("Search error:", error);
