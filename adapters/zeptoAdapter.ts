@@ -1,5 +1,5 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
-import { getBrowser } from "../lib/browser";
+import { getBrowser, stealthPage } from "../lib/browser";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -32,6 +32,7 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
   }
 
   const page = await context.newPage();
+  await stealthPage(page);
   const allProducts: RawProduct[] = [];
 
   try {

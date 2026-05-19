@@ -1,5 +1,5 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
-import { getBrowser } from "../lib/browser";
+import { getBrowser, stealthPage } from "../lib/browser";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -41,6 +41,7 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
   }
 
   const page = await context.newPage();
+  await stealthPage(page);
   const allProducts: RawProduct[] = [];
 
   try {

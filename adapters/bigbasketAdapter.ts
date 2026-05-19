@@ -1,5 +1,5 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
-import { getBrowser } from "../lib/browser";
+import { getBrowser, stealthPage } from "../lib/browser";
 
 async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   const browser = await getBrowser();
@@ -13,6 +13,7 @@ async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   });
 
   const page = await context.newPage();
+  await stealthPage(page);
   const allProducts: RawProduct[] = [];
 
   try {
