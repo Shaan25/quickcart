@@ -60,11 +60,14 @@ export async function GET(request: Request) {
       await stealthPage(page);
       logs.push(`[${t()-t0}ms] stealth applied`);
 
-      const responsePromise = page.waitForResponse(
-        (res) => res.url().includes("listing-svc/v2/products") && res.status() === 200,
-        { timeout: 18000 }
-      ).catch((e) => { logs.push(`[${t()-t0}ms] waitForResponse error: ${(e as Error).message}`); return null; });
-      logs.push(`[${t()-t0}ms] waitForResponse listener set`);
+      let capturedBody: string | null = null;
+      page.on("response", async (res) => {
+        if (res.url().includes("listing-svc/v2/products") && res.status() === 200 && !capturedBody) {
+          logs.push(`[${t()-t0}ms] page.on captured: ${res.url().slice(0, 100)}`);
+          capturedBody = await res.text().catch(() => null);
+        }
+      });
+      logs.push(`[${t()-t0}ms] page.on listener set`);
 
       try {
         await page.goto("https://www.bigbasket.com/ps/?q=milk", { waitUntil: "domcontentloaded", timeout: 18000 });
@@ -73,8 +76,21 @@ export async function GET(request: Request) {
         logs.push(`[${t()-t0}ms] goto FAILED: ${(e as Error).message.slice(0, 200)}`);
       }
 
-      const response = await responsePromise;
-      logs.push(`[${t()-t0}ms] response: ${response ? `got (${response.url().slice(0, 80)})` : "null"}`);
+      logs.push(`[${t()-t0}ms] starting waitForTimeout(12000)...`);
+      await page.waitForTimeout(12000);
+      logs.push(`[${t()-t0}ms] waitForTimeout done, capturedBody: ${capturedBody ? `${capturedBody.length} bytes` : "null"}`);
+
+      if (capturedBody) {
+        try {
+          const json = JSON.parse(capturedBody) as Record<string, unknown>;
+          const tabs = (json.tabs as Array<{ product_info?: { products?: unknown[] } }>) ?? [];
+          const count = tabs[0]?.product_info?.products?.length ?? 0;
+          logs.push(`[${t()-t0}ms] parsed OK, products: ${count}`);
+        } catch (e) {
+          logs.push(`[${t()-t0}ms] parse error: ${(e as Error).message}`);
+        }
+      }
+
       await ctx.close();
     } catch (e) {
       logs.push(`[${t()-t0}ms] OUTER ERROR: ${(e as Error).message.slice(0, 200)}`);
