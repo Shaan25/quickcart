@@ -1,5 +1,6 @@
 import type { PlatformAdapter, RawProduct, LocationCoords } from "../lib/types";
 import { getBrowser, stealthPage } from "../lib/browser";
+import { proxyOptions } from "../lib/proxy";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -26,9 +27,13 @@ function inferCategory(name: string): string {
 async function fetchFromBlinkit(query: string, location?: LocationCoords): Promise<RawProduct[]> {
   const browser = await getBrowser();
   const hasSession = fs.existsSync(SESSION_FILE);
+  const ctxOptions = {
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    ...proxyOptions(),
+  };
   const context = hasSession
-    ? await browser.newContext({ storageState: SESSION_FILE, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" })
-    : await browser.newContext({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" });
+    ? await browser.newContext({ storageState: SESSION_FILE, ...ctxOptions })
+    : await browser.newContext(ctxOptions);
 
   if (location) {
     const city = location.city ?? location.label ?? "";
