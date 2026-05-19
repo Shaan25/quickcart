@@ -107,7 +107,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <footer className="mt-16 border-t border-gray-200 py-6">
         <div className="mx-auto max-w-3xl px-4">
           <p className="text-center text-xs text-gray-400">
-            Prices fetched live from Blinkit, BigBasket &amp; Zepto. Approximate only &mdash; verify before purchasing.{" "}
+            BigBasket &amp; Zepto prices are fetched live. Blinkit prices are estimated &mdash; verify before purchasing.{" "}
             <span className="font-medium">Not affiliated with any platform.</span>
           </p>
         </div>

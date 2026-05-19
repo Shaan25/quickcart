@@ -78,7 +78,8 @@ export async function GET(request: Request) {
 
       logs.push(`[${t()-t0}ms] starting waitForTimeout(12000)...`);
       await page.waitForTimeout(12000);
-      logs.push(`[${t()-t0}ms] waitForTimeout done, capturedBody: ${capturedBody ? `${capturedBody.length} bytes` : "null"}`);
+      const bodySize = capturedBody ? (capturedBody as string).length + " bytes" : "null";
+      logs.push(`[${t()-t0}ms] waitForTimeout done, capturedBody: ${bodySize}`);
 
       if (capturedBody) {
         try {

@@ -45,8 +45,8 @@ function PlatformCell({
 
   const discount = discountPct(product);
   const isEstimated =
+    platform === "blinkit" ||
     (platform === "bigbasket" && !product.id.startsWith("bb_live_")) ||
-    (platform === "blinkit" && !product.id.startsWith("bk_live_")) ||
     (platform === "zepto" && !product.id.startsWith("zt_live_"));
 
   return (
@@ -80,7 +80,7 @@ function PlatformCell({
       )}
       <p className="mt-1 text-xs text-gray-500">{product.unitLabel} @ ₹{product.unitPrice.toFixed(1)}</p>
       {isEstimated && (
-        <span className="mt-1 inline-block text-[9px] text-gray-400 italic">~estimated price</span>
+        <span className="mt-1 inline-block text-[9px] text-amber-600 italic">~ est. price</span>
       )}
       <a
         href={buyUrl}
