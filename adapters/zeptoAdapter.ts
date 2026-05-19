@@ -41,10 +41,10 @@ async function fetchFromZepto(query: string, location?: LocationCoords): Promise
         res.url().includes("bff-gateway.zepto.com/user-search-service/api/v3/search") &&
         !res.url().includes("/filters") &&
         res.status() === 200,
-      { timeout: 25000 }
+      { timeout: 18000 }
     ).catch(() => null);
 
-    await page.goto(`https://www.zepto.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
+    await page.goto(`https://www.zepto.com/search?query=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
     const response = await responsePromise;
 
     if (response) {

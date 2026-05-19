@@ -19,10 +19,10 @@ async function fetchFromBigbasketLive(query: string): Promise<RawProduct[]> {
   try {
     const responsePromise = page.waitForResponse(
       (res) => res.url().includes("listing-svc/v2/products") && res.status() === 200,
-      { timeout: 25000 }
+      { timeout: 18000 }
     ).catch(() => null);
 
-    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
+    await page.goto(`https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
     const response = await responsePromise;
 
     if (response) {

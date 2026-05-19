@@ -50,10 +50,10 @@ async function fetchFromBlinkit(query: string, location?: LocationCoords): Promi
   try {
     const responsePromise = page.waitForResponse(
       (res) => res.url().includes("blinkit.com/v1/layout/search") && res.url().includes("search_type"),
-      { timeout: 25000 }
+      { timeout: 18000 }
     ).catch(() => null);
 
-    await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 25000 });
+    await page.goto(`https://blinkit.com/s/?q=${encodeURIComponent(query)}`, { waitUntil: "domcontentloaded", timeout: 18000 });
     const response = await responsePromise;
 
     if (response) {
